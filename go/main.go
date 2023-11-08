@@ -26,13 +26,12 @@ func main() {
 	r := mux.NewRouter()
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("html/static"))))
 
-	// Define a middleware to check if the user is authenticated
 	authMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, _ := store.Get(r, "user-session")
 			username, ok := session.Values["username"].(string)
 			if !ok || username == "" {
-				http.Redirect(w, r, "/", http.StatusSeeOther) // Redirect to login if not authenticated
+				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -44,8 +43,8 @@ func main() {
 	r.Handle("/order", authMiddleware(http.HandlerFunc(orderHandler))).Methods("GET")
 	r.Handle("/restaurant", authMiddleware(http.HandlerFunc(restaurantHandler))).Methods("GET")
 	r.Handle("/reviews", authMiddleware(http.HandlerFunc(reviewsHandler))).Methods("GET")
+	r.Handle("/signout", authMiddleware(http.HandlerFunc(signoutHandler))).Methods("GET")
 
-	// Handle the root path for login form and logic
 	r.HandleFunc("/", loginHandler).Methods("GET")
 	r.HandleFunc("/", loginPostHandler).Methods("POST")
 	r.HandleFunc("/signup", signupHandler).Methods("POST")
@@ -56,7 +55,7 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 }
 
-func renderTemplate(w http.ResponseWriter, tmpl string) {
+func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
 	t, err := template.ParseFiles("../html/" + tmpl + ".html")
 
 	if err != nil {
@@ -64,7 +63,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string) {
 		return
 	}
 
-	err = t.Execute(w, nil)
+	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -79,32 +78,58 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("Accessing home page")
-	renderTemplate(w, "home")
+	renderTemplate(w, "home", nil)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Accessing login page")
-	renderTemplate(w, "login")
+	renderTemplate(w, "login", nil)
+}
+
+func signoutHandler(w http.ResponseWriter, r *http.Request) {
+
+	session, _ := store.Get(r, "user-session")
+	session.Options = &sessions.Options{MaxAge: -1}
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func profileHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Accessing profile page")
-	renderTemplate(w, "profile")
+	session, _ := store.Get(r, "user-session")
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	var userData struct {
+		Username string
+		Email    string
+		Address  string
+	}
+	err := db.QueryRow("SELECT username, email, address FROM login WHERE username = ?", username).Scan(&userData.Username, &userData.Email, &userData.Address)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	renderTemplate(w, "profile", userData)
 }
 
 func orderHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Accessing order page")
-	renderTemplate(w, "order")
+	renderTemplate(w, "order", nil)
 }
 
 func restaurantHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Accessing restaurant page")
-	renderTemplate(w, "restaurant")
+	renderTemplate(w, "restaurant", nil)
 }
 
 func reviewsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Accessing reviews page")
-	renderTemplate(w, "reviews")
+	renderTemplate(w, "reviews", nil)
 }
 
 func loginPostHandler(w http.ResponseWriter, r *http.Request) {
