@@ -5,53 +5,43 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-s
-    $('.editable').hide();
+            $('.editable').hide();
 
-    $('#editButton').click(function() {
-        $('.editable').show();
-        $('.text').hide();
-        $('#editButton').hide();
+            $('#editButton').click(function() {
+                $('.editable').show();
+                $('.text').hide();
+                $('#editButton').hide();
+                $('#confirmLink').show();
+                return false;
+            });
 
-        
-        $('#confirmLink').show();
-        return false; 
-    });
+            $('#confirmLink').click(function() {
+                $('.editable').each(function() {
+                    var newValue = $(this).val();
+                    var target = $(this).data('target');
+                    $('#' + target).text(newValue);
+                });
 
+                // AJAX request to update the profile on the server
+                $.post('/updateprofile', {
+                    newUsername: $('#editableUsername').val(),
+                    newEmail: $('#editableEmail').val(),
+                    newAddress: $('#editableAddress').val()
+                }).done(function(data) {
+                    window.location.href = "/";
+                }).fail(function() {
+                    window.location.href = "/";
+                });
 
-    $('#confirmLink').click(function() {
-        $('.editable').each(function() {
-            var newValue = $(this).val();
-            var target = $(this).data('target');
-            $('#' + target).text(newValue);
+                $('.editable').hide();
+                $('.text').show();
+                $('#editButton').show();
+                $('#confirmLink').hide();
+
+                return false;
+            });
         });
-
-   
-        $.post('/updateprofile', {
-            newUsername: $('#editableUsername').val(),
-            newEmail: $('#editableEmail').val(),
-            newAddress: $('#editableAddress').val()
-        }).done(function(data) {
-        
-            window.location.href = "/";
-        }).fail(function() {
-            
-            window.location.href = "/";
-        });
-
-
-        $('.editable').hide();
-        $('.text').show();
-        $('#editButton').show();
-        $('#confirmLink').hide();
-
-        return false;
-    });
-});
-
-
     </script>
-    
 </head>
 <body>
     <h1>Profile Page</h1>
@@ -125,7 +115,7 @@ $(document).ready(function() {
             alert("Error changing: Current Password does not match.");
         });
 
-        // Clear the input fields
+        
         $('#currentPassword').val('');
         $('#newPassword').val('');
 
