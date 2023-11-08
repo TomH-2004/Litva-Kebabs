@@ -44,6 +44,10 @@ func main() {
 	r.Handle("/restaurant", authMiddleware(http.HandlerFunc(restaurantHandler))).Methods("GET")
 	r.Handle("/reviews", authMiddleware(http.HandlerFunc(reviewsHandler))).Methods("GET")
 	r.Handle("/signout", authMiddleware(http.HandlerFunc(signoutHandler))).Methods("GET")
+	r.Handle("/editdetails", authMiddleware(http.HandlerFunc(editDetailsHandler))).Methods("POST")
+	r.Handle("/changepassword", authMiddleware(http.HandlerFunc(changePasswordHandler))).Methods("POST")
+	r.Handle("/updateprofile", authMiddleware(http.HandlerFunc(updateProfileHandler))).Methods("POST")
+	r.Handle("/signoutafterupdate", authMiddleware(http.HandlerFunc(signoutHandlerAfterUpdate))).Methods("GET")
 
 	r.HandleFunc("/", loginHandler).Methods("GET")
 	r.HandleFunc("/", loginPostHandler).Methods("POST")
@@ -139,13 +143,13 @@ func loginPostHandler(w http.ResponseWriter, r *http.Request) {
 	var storedPassword string
 	err := db.QueryRow("SELECT password FROM login WHERE username = ?", username).Scan(&storedPassword)
 	if err != nil {
-		http.Redirect(w, r, "/login?error=1", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error=1", http.StatusSeeOther)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password))
 	if err != nil {
-		http.Redirect(w, r, "/login?error=2", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error=2", http.StatusSeeOther)
 		return
 	}
 
@@ -179,4 +183,108 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/home", http.StatusSeeOther)
+}
+
+func editDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "user-session")
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	newUsername := r.FormValue("newUsername")
+	newEmail := r.FormValue("newEmail")
+	newAddress := r.FormValue("newAddress")
+
+	_, err := db.Exec("UPDATE login SET username=?, email=?, address=? WHERE username=?", newUsername, newEmail, newAddress, username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/profile", http.StatusSeeOther)
+}
+
+func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "user-session")
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+
+		http.Error(w, "Not authenticated", http.StatusUnauthorized)
+		return
+	}
+
+	currentPassword := r.FormValue("currentPassword")
+	newPassword := r.FormValue("newPassword")
+
+	var storedPassword string
+	err := db.QueryRow("SELECT password FROM login WHERE username = ?", username).Scan(&storedPassword)
+	if err != nil {
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(currentPassword))
+	if err != nil {
+
+		http.Error(w, "Current password is incorrect", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+
+		http.Error(w, "Password hashing error", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec("UPDATE login SET password=? WHERE username=?", hashedPassword, username)
+	if err != nil {
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("true"))
+}
+
+func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "user-session")
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		newUsername := r.FormValue("newUsername")
+		newEmail := r.FormValue("newEmail")
+		newAddress := r.FormValue("newAddress")
+
+		_, err := db.Exec("UPDATE login SET username = ?, email = ?, address = ? WHERE username = ?", newUsername, newEmail, newAddress, username)
+		if err != nil {
+
+			fmt.Println("Error updating user data:", err)
+			http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Println("User profile updated successfully")
+
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/profile", http.StatusSeeOther)
+}
+
+func signoutHandlerAfterUpdate(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "user-session")
+	session.Options = &sessions.Options{MaxAge: -1}
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

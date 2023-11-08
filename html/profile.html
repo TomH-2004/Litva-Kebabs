@@ -2,6 +2,56 @@
 <html>
 <head>
     <title>Profile</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+s
+    $('.editable').hide();
+
+    $('#editButton').click(function() {
+        $('.editable').show();
+        $('.text').hide();
+        $('#editButton').hide();
+
+        
+        $('#confirmLink').show();
+        return false; 
+    });
+
+
+    $('#confirmLink').click(function() {
+        $('.editable').each(function() {
+            var newValue = $(this).val();
+            var target = $(this).data('target');
+            $('#' + target).text(newValue);
+        });
+
+   
+        $.post('/updateprofile', {
+            newUsername: $('#editableUsername').val(),
+            newEmail: $('#editableEmail').val(),
+            newAddress: $('#editableAddress').val()
+        }).done(function(data) {
+        
+            window.location.href = "/";
+        }).fail(function() {
+            
+            window.location.href = "/";
+        });
+
+
+        $('.editable').hide();
+        $('.text').show();
+        $('#editButton').show();
+        $('#confirmLink').hide();
+
+        return false;
+    });
+});
+
+
+    </script>
+    
 </head>
 <body>
     <h1>Profile Page</h1>
@@ -12,10 +62,79 @@
     <a href="/restaurant">Restaurant</a>
     <a href="/reviews">Reviews</a>
     
-    <div>
-        <p>Username: {{.Username}}</p>
-        <p>Email: {{.Email}}</p>
-        <p>Address: {{.Address}}</p>
-    </div>
+    <form method="post" action="/updateprofile" id="profileForm">
+        <p>Username: <span class="text" id="Username">{{.Username}}</span>
+            <input type="text" class="editable" id="editableUsername" data-target="Username" name="newUsername" value="{{.Username}}">
+        </p>
+        <p>Email: <span class="text" id="Email">{{.Email}}</span>
+            <input type="email" class="editable" id="editableEmail" data-target="Email" name="newEmail" value="{{.Email}}">
+        </p>
+        <p>Address: <span class="text" id="Address">{{.Address}}</span>
+            <input type="text" class="editable" id="editableAddress" data-target="Address" name="newAddress" value="{{.Address}}">
+        </p>
+        <button id="editButton">Edit</button>
+        <a href="/signout" id="confirmLink" data-target="Username,Email,Address" style="display: none;">Confirm</a>
+    </form>
+    
+    
+
+
+
+
+<button id="changePasswordButton">Change Password</button>
+<div id="changePasswordFields" style="display: none;">
+    <form id="changePasswordForm">
+        <label for="currentPassword">Current Password:</label>
+        <input type="password" id="currentPassword" name="currentPassword"><br>
+
+        <label for="newPassword">New Password:</label>
+        <input type="password" id="newPassword" name="newPassword"><br>
+
+        <button id="confirmChangePassword">Confirm</button>
+    </form>
+</div>
+
+<script>
+$(document).ready(function() {
+
+    $('#changePasswordButton').click(function() {
+        $('#changePasswordFields').show();
+        return false;
+    });
+
+ 
+    $('#confirmChangePassword').click(function() {
+        var currentPassword = $('#currentPassword').val();
+        var newPassword = $('#newPassword').val();
+
+
+        $.post('/changepassword', {
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        }).done(function(data) {
+            if (data === "true") {
+                
+                alert("Password changed successfully!");
+                $('#changePasswordFields').hide();
+            } else {
+               
+                alert("Error changing password.");
+            }
+        }).fail(function() {
+      
+            alert("Error changing: Current Password does not match.");
+        });
+
+        // Clear the input fields
+        $('#currentPassword').val('');
+        $('#newPassword').val('');
+
+        return false; 
+    });
+});
+</script>
+
+</script>
+
 </body>
 </html>
