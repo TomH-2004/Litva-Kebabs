@@ -1,3 +1,4 @@
-# idk-what-to-name-this-yet---apprentice-work
+# Litva Kebabs -- WIP
 
-Product ordering system for kebab shop. Tailwind css front end, golang server side.
+Golang based restaurant website with a Tailwind front end. localhost db for now on 3306, can be changed in start of main func in go/main.go.
+Uses session tokens for account auth. have found a couple ways to bypass it, so need to find a fix.
