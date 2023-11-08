@@ -80,13 +80,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-
-	fmt.Println("Accessing home page")
 	renderTemplate(w, "home", nil)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Accessing login page")
 	renderTemplate(w, "login", nil)
 }
 
@@ -122,17 +119,14 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func orderHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Accessing order page")
 	renderTemplate(w, "order", nil)
 }
 
 func restaurantHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Accessing restaurant page")
 	renderTemplate(w, "restaurant", nil)
 }
 
 func reviewsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Accessing reviews page")
 	renderTemplate(w, "reviews", nil)
 }
 
