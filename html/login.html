@@ -1,11 +1,21 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Login/Signup</title>
-</head>
+    <head>
+        <title>Login/Signup</title>
+        <script>
+            window.onload = function() {
+                var error = new URLSearchParams(window.location.search).get("error");
+                if (error === "1") {
+                    alert("Username not found. Please sign up if you don't have an account.");
+                }
+            };
+        </script>
+        
+        
+    </head>
 <body>
     <h1>Login</h1>
-    <form action="/login" method="post">
+    <form action="/" method="post">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required><br><br>
 

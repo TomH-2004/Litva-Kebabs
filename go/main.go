@@ -8,9 +8,12 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var db *sql.DB
+var store = sessions.NewCookieStore([]byte("your-secret-key"))
 
 func main() {
 	var err error
@@ -23,14 +26,28 @@ func main() {
 	r := mux.NewRouter()
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("html/static"))))
 
-	r.HandleFunc("/home", homeHandler).Methods("GET")
-	r.HandleFunc("/login", loginHandler).Methods("GET")
-	r.HandleFunc("/profile", profileHandler).Methods("GET")
-	r.HandleFunc("/order", orderHandler).Methods("GET")
-	r.HandleFunc("/restaurant", restaurantHandler).Methods("GET")
-	r.HandleFunc("/reviews", reviewsHandler).Methods("GET")
+	// Define a middleware to check if the user is authenticated
+	authMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session, _ := store.Get(r, "user-session")
+			username, ok := session.Values["username"].(string)
+			if !ok || username == "" {
+				http.Redirect(w, r, "/", http.StatusSeeOther) // Redirect to login if not authenticated
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 
-	r.HandleFunc("/login", loginPostHandler).Methods("POST")
+	r.Handle("/home", authMiddleware(http.HandlerFunc(homeHandler))).Methods("GET")
+	r.Handle("/profile", authMiddleware(http.HandlerFunc(profileHandler))).Methods("GET")
+	r.Handle("/order", authMiddleware(http.HandlerFunc(orderHandler))).Methods("GET")
+	r.Handle("/restaurant", authMiddleware(http.HandlerFunc(restaurantHandler))).Methods("GET")
+	r.Handle("/reviews", authMiddleware(http.HandlerFunc(reviewsHandler))).Methods("GET")
+
+	// Handle the root path for login form and logic
+	r.HandleFunc("/", loginHandler).Methods("GET")
+	r.HandleFunc("/", loginPostHandler).Methods("POST")
 	r.HandleFunc("/signup", signupHandler).Methods("POST")
 
 	http.Handle("/", r)
@@ -54,6 +71,13 @@ func renderTemplate(w http.ResponseWriter, tmpl string) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "user-session")
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
 	fmt.Println("Accessing home page")
 	renderTemplate(w, "home")
 }
@@ -84,22 +108,50 @@ func reviewsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginPostHandler(w http.ResponseWriter, r *http.Request) {
+	username := r.FormValue("username")
+	password := r.FormValue("password")
 
+	var storedPassword string
+	err := db.QueryRow("SELECT password FROM login WHERE username = ?", username).Scan(&storedPassword)
+	if err != nil {
+		http.Redirect(w, r, "/login?error=1", http.StatusSeeOther)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password))
+	if err != nil {
+		http.Redirect(w, r, "/login?error=2", http.StatusSeeOther)
+		return
+	}
+
+	session, _ := store.Get(r, "user-session")
+	session.Values["username"] = username
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/home", http.StatusSeeOther)
 }
 
 func signupHandler(w http.ResponseWriter, r *http.Request) {
-
 	newUsername := r.FormValue("newUsername")
 	newPassword := r.FormValue("newPassword")
 	email := r.FormValue("email")
 	address := r.FormValue("address")
 
-	_, err := db.Exec("INSERT INTO login (username, password, email, address) VALUES (?, ?, ?, ?)", newUsername, newPassword, email, address)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
-
-		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		http.Error(w, "Password hashing error", http.StatusInternalServerError)
 		return
 	}
+
+	_, err = db.Exec("INSERT INTO login (username, password, email, address) VALUES (?, ?, ?, ?)", newUsername, hashedPassword, email, address)
+	if err != nil {
+		http.Error(w, "Database insert error", http.StatusInternalServerError)
+		return
+	}
+
+	session, _ := store.Get(r, "user-session")
+	session.Values["username"] = newUsername
+	session.Save(r, w)
 
 	http.Redirect(w, r, "/home", http.StatusSeeOther)
 }
