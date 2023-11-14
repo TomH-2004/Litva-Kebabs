@@ -2,15 +2,26 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type MenuItem struct {
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
+}
+
+type Menu struct {
+	Menu []MenuItem `json:"menu"`
+}
 
 var db *sql.DB
 var store = sessions.NewCookieStore([]byte("your-secret-key"))
@@ -119,7 +130,40 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func orderHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "order", nil)
+	foodMenu, err := readMenu("menus/food_menu.json")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	drinkMenu, err := readMenu("menus/drink_menu.json")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"FoodMenu":  foodMenu,
+		"DrinkMenu": drinkMenu,
+	}
+
+	renderTemplate(w, "order", data)
+}
+
+func readMenu(filePath string) ([]MenuItem, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var menu Menu
+	err = json.NewDecoder(file).Decode(&menu)
+	if err != nil {
+		return nil, err
+	}
+
+	return menu.Menu, nil
 }
 
 func restaurantHandler(w http.ResponseWriter, r *http.Request) {

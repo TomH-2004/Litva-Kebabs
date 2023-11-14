@@ -25,5 +25,18 @@
             </div>
         </div>
     </nav>
+    <h2>Food Menu:</h2>
+    <ul>
+        {{ range .FoodMenu }}
+        <li>{{ .Name }} - ${{ .Price }}</li>
+        {{ end }}
+    </ul>
+
+    <h2>Drink Menu:</h2>
+    <ul>
+        {{ range .DrinkMenu }}
+        <li>{{ .Name }} - ${{ .Price }}</li>
+        {{ end }}
+    </ul>
 </body>
 </html>
