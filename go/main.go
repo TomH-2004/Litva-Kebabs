@@ -59,7 +59,7 @@ func main() {
 	r.Handle("/changepassword", authMiddleware(http.HandlerFunc(changePasswordHandler))).Methods("POST")
 	r.Handle("/updateprofile", authMiddleware(http.HandlerFunc(updateProfileHandler))).Methods("POST")
 	r.Handle("/signoutafterupdate", authMiddleware(http.HandlerFunc(signoutHandlerAfterUpdate))).Methods("GET")
-
+	r.Handle("/pics/", http.StripPrefix("/pics/", http.FileServer(http.Dir("pics"))))
 	r.HandleFunc("/", loginHandler).Methods("GET")
 	r.HandleFunc("/", loginPostHandler).Methods("POST")
 	r.HandleFunc("/signup", signupHandler).Methods("POST")
