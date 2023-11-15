@@ -49,20 +49,29 @@ func main() {
 		})
 	}
 
+	//PAGES
 	r.Handle("/home", authMiddleware(http.HandlerFunc(homeHandler))).Methods("GET")
 	r.Handle("/profile", authMiddleware(http.HandlerFunc(profileHandler))).Methods("GET")
 	r.Handle("/order", authMiddleware(http.HandlerFunc(orderHandler))).Methods("GET")
 	r.Handle("/restaurant", authMiddleware(http.HandlerFunc(restaurantHandler))).Methods("GET")
 	r.Handle("/reviews", authMiddleware(http.HandlerFunc(reviewsHandler))).Methods("GET")
+
+	//NAV BAR SIGN OUT
 	r.Handle("/signout", authMiddleware(http.HandlerFunc(signoutHandler))).Methods("GET")
+
+	//PROFILE EDIT DETAILS
 	r.Handle("/editdetails", authMiddleware(http.HandlerFunc(editDetailsHandler))).Methods("POST")
 	r.Handle("/changepassword", authMiddleware(http.HandlerFunc(changePasswordHandler))).Methods("POST")
 	r.Handle("/updateprofile", authMiddleware(http.HandlerFunc(updateProfileHandler))).Methods("POST")
 	r.Handle("/signoutafterupdate", authMiddleware(http.HandlerFunc(signoutHandlerAfterUpdate))).Methods("GET")
-	http.Handle("/pics/", http.StripPrefix("/pics/", http.FileServer(http.Dir("pics"))))
+
+	//PGIN AND SIGN UP
 	r.HandleFunc("/", loginHandler).Methods("GET")
 	r.HandleFunc("/", loginPostHandler).Methods("POST")
 	r.HandleFunc("/signup", signupHandler).Methods("POST")
+
+	//PICTURES
+	http.Handle("/pics/", http.StripPrefix("/pics/", http.FileServer(http.Dir("pics"))))
 
 	http.Handle("/", r)
 
