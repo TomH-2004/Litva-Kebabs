@@ -65,7 +65,7 @@ func main() {
 	r.Handle("/updateprofile", authMiddleware(http.HandlerFunc(updateProfileHandler))).Methods("POST")
 	r.Handle("/signoutafterupdate", authMiddleware(http.HandlerFunc(signoutHandlerAfterUpdate))).Methods("GET")
 
-	//PGIN AND SIGN UP
+	//LOGIN AND SIGN UP
 	r.HandleFunc("/", loginHandler).Methods("GET")
 	r.HandleFunc("/", loginPostHandler).Methods("POST")
 	r.HandleFunc("/signup", signupHandler).Methods("POST")
