@@ -26,6 +26,13 @@ type Menu struct {
 var db *sql.DB
 var store = sessions.NewCookieStore([]byte("your-secret-key"))
 
+type PageVariables struct {
+	FoodMenu      []MenuItem
+	DrinkMenu     []MenuItem
+	FoodMenuJSON  string
+	DrinkMenuJSON string
+}
+
 func main() {
 	var err error
 	db, err = sql.Open("mysql", "devuser:123456@tcp(127.0.0.1:3306)/kebabshop")
@@ -138,42 +145,42 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "profile", userData)
 }
 
-func orderHandler(w http.ResponseWriter, r *http.Request) {
-	foodMenu, err := readMenu("menus/food_menu.json")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// func orderHandler(w http.ResponseWriter, r *http.Request) {
+// 	foodMenu, err := readMenu("menus/food_menu.json")
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	drinkMenu, err := readMenu("menus/drink_menu.json")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	drinkMenu, err := readMenu("menus/drink_menu.json")
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	data := map[string]interface{}{
-		"FoodMenu":  foodMenu,
-		"DrinkMenu": drinkMenu,
-	}
+// 	data := map[string]interface{}{
+// 		"FoodMenu":  foodMenu,
+// 		"DrinkMenu": drinkMenu,
+// 	}
 
-	renderTemplate(w, "order", data)
-}
+// 	renderTemplate(w, "order", data)
+// }
 
-func readMenu(filePath string) ([]MenuItem, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+// func readMenu(filePath string) ([]MenuItem, error) {
+// 	file, err := os.Open(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer file.Close()
 
-	var menu Menu
-	err = json.NewDecoder(file).Decode(&menu)
-	if err != nil {
-		return nil, err
-	}
+// 	var menu Menu
+// 	err = json.NewDecoder(file).Decode(&menu)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return menu.Menu, nil
-}
+// 	return menu.Menu, nil
+// }
 
 func restaurantHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "restaurant", nil)
@@ -334,4 +341,48 @@ func signoutHandlerAfterUpdate(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func loadData() PageVariables {
+	foodMenu := loadMenu("menus/food_menu.json")
+	drinkMenu := loadMenu("menus/drink_menu.json")
+
+	return PageVariables{
+		FoodMenu:      foodMenu.Menu,
+		DrinkMenu:     drinkMenu.Menu,
+		FoodMenuJSON:  convertToJSON(foodMenu.Menu),
+		DrinkMenuJSON: convertToJSON(drinkMenu.Menu),
+	}
+}
+
+func loadMenu(filename string) *Menu {
+	var menu Menu
+
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("Error reading menu file: %v\n", err)
+		return nil
+	}
+
+	err = json.Unmarshal(data, &menu)
+	if err != nil {
+		fmt.Printf("Error parsing menu JSON: %v\n", err)
+		return nil
+	}
+
+	return &menu
+}
+
+func convertToJSON(data []MenuItem) string {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Printf("Error converting to JSON: %v\n", err)
+		return ""
+	}
+	return string(jsonData)
+}
+
+func orderHandler(w http.ResponseWriter, r *http.Request) {
+	data := loadData()
+	renderTemplate(w, "order", data)
 }
