@@ -123,6 +123,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white p-4 rounded shadow-md">
                 <h3 class="text-xl font-semibold mb-2">Menu</h3>
+                <p1>Select what you would like to review:</p1>
                 <select id="foodItem" class="w-full p-2 border rounded">
                     <option value="">Select a food item</option>
                     {{ range .FoodMenu }}
@@ -189,36 +190,48 @@
     document.addEventListener("DOMContentLoaded", () => {
  
         document.getElementById('reviewForm').addEventListener('submit', event => {
-            event.preventDefault();
-            const customerName = '{{ .Username }}'; 
-            const itemDropdown = document.getElementById('foodItem');
-            const selectedItem = itemDropdown.options[itemDropdown.selectedIndex].value;
-            const reviewText = document.getElementById('reviewText').value;
+        event.preventDefault();
 
-            const formData = {
-                customer_name: customerName,
-                item: selectedItem,
-                review_text: reviewText,
-            };
+        const customerName = '{{ .Username }}'; 
+        const itemElement = document.getElementById('foodItem');
+        const item = itemElement.options[itemElement.selectedIndex].value;
+        const rating = document.getElementById('rating').value;
+        const reviewText = document.getElementById('reviewText').value;
 
-            fetch('/submitReview', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            })
-            .then(response => response.json())
-            .then(data => {
+      
+        if (!item || item.trim() === '' || reviewText.trim() === '') {
+            alert('Please select an item and enter a review');
+            return;
+        }
+
+        const formData = {
+            customer_name: customerName,
+            item: item,
+            review_text: reviewText,
+        };
+
+        fetch('/submitReview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+        })
+        
+        .then(response => response.json())
+        .then(data => {
+          
+            console.log('Review submitted successfully:', data);
+            // Redirect to the reviews page
+            window.location.href = '/reviews';
+        })
+        .catch(error => {
             
-                console.log('Review submitted successfully:', data);
-            })
-            .catch(error => {
-             
-                console.error('Error submitting review:', error);
-            });
+            window.location.href = '/reviews';
+            console.error('Error submitting review:', error);
         });
     });
+});
 </script>
 
 
