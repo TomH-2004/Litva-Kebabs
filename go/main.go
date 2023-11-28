@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -17,6 +19,13 @@ import (
 type MenuItem struct {
 	Name  string  `json:"name"`
 	Price float64 `json:"price"`
+}
+
+type Review struct {
+	CustomerName string    `json:"customer_name"`
+	TimeSent     time.Time `json:"time_sent"`
+	Item         string    `json:"item"`
+	ReviewText   string    `json:"review_text"`
 }
 
 type Menu struct {
@@ -79,6 +88,9 @@ func main() {
 
 	//PICTURES
 	http.Handle("/pics/", http.StripPrefix("/pics/", http.FileServer(http.Dir("pics"))))
+
+	//REVIEWS
+	r.Handle("/submitReview", authMiddleware(http.HandlerFunc(submitReviewHandler))).Methods("POST")
 
 	http.Handle("/", r)
 
@@ -145,49 +157,38 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "profile", userData)
 }
 
-// func orderHandler(w http.ResponseWriter, r *http.Request) {
-// 	foodMenu, err := readMenu("menus/food_menu.json")
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	drinkMenu, err := readMenu("menus/drink_menu.json")
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	data := map[string]interface{}{
-// 		"FoodMenu":  foodMenu,
-// 		"DrinkMenu": drinkMenu,
-// 	}
-
-// 	renderTemplate(w, "order", data)
-// }
-
-// func readMenu(filePath string) ([]MenuItem, error) {
-// 	file, err := os.Open(filePath)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer file.Close()
-
-// 	var menu Menu
-// 	err = json.NewDecoder(file).Decode(&menu)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return menu.Menu, nil
-// }
-
 func restaurantHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "restaurant", nil)
 }
 
 func reviewsHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "reviews", nil)
+	session, _ := store.Get(r, "user-session")
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	foodMenu := loadFoodMenu()
+
+	reviewsFilePath := "../html/reviews/review.json"
+	reviews, err := getReviewsFromJSONFile(reviewsFilePath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		FoodMenu []MenuItem
+		Username string
+		Reviews  []Review
+	}{
+		FoodMenu: foodMenu,
+		Username: username,
+		Reviews:  reviews,
+	}
+
+	renderTemplate(w, "reviews", data)
 }
 
 func loginPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -385,4 +386,81 @@ func convertToJSON(data []MenuItem) string {
 func orderHandler(w http.ResponseWriter, r *http.Request) {
 	data := loadData()
 	renderTemplate(w, "order", data)
+}
+
+func submitReviewHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	type Review struct {
+		CustomerName string `json:"customer_name"`
+		Item         string `json:"item"`
+		ReviewText   string `json:"review_text"`
+	}
+
+	var review Review
+	err := json.NewDecoder(r.Body).Decode(&review)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	reviewsFilePath := "../html/reviews/review.json"
+
+	reviewsFile, err := os.OpenFile(reviewsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer reviewsFile.Close()
+
+	reviewData, err := json.Marshal(review)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = reviewsFile.WriteString(string(reviewData) + "\n")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Review submitted successfully"))
+}
+
+func loadFoodMenu() []MenuItem {
+	foodMenu := loadMenu("menus/food_menu.json")
+	if foodMenu != nil {
+		return foodMenu.Menu
+	}
+	return nil
+}
+
+func getReviewsFromJSONFile(filePath string) ([]Review, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var reviews []Review
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		var review Review
+		err := json.Unmarshal([]byte(scanner.Text()), &review)
+		if err != nil {
+			return nil, err
+		}
+		reviews = append(reviews, review)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return reviews, nil
 }
