@@ -13,8 +13,41 @@
         min-width: 300px;
       }
 
+      .footer {
+            margin-top: auto;
+        }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
       .editable {
         display: none;
+      }
+
+      .editable {
+      border: 1px solid #ccc;
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+      .editable, .text {
+        margin-bottom: 0.5rem;
+      }
+
+      .flex-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
 
       html {
@@ -97,6 +130,8 @@
           display: none;
         }
       }
+
+      
     </style>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
@@ -225,117 +260,63 @@
     </nav>
 
     <div class="container mx-auto mt-8">
-      <form method="post" action="/updateprofile" id="profileForm">
-        <div class="bg-white rounded-lg p-6 shadow-md">
-          <div class="mb-4">
-            <label for="editableUsername" class="text-gray-600"
-              >Username:</label
-            >
-            <p id="Username" class="text">{{.Username}}</p>
-            <input
-              type="text"
-              class="editable border border-gray-300 rounded-lg px-3 py-2 mt-2 w-full"
-              id="editableUsername"
-              data-target="Username"
-              name="newUsername"
-              value="{{.Username}}"
-            />
+        <form method="post" action="/updateprofile" id="profileForm">
+          <div class="bg-white rounded-lg p-6 shadow-md">
+            <div class="mb-4">
+              <label for="editableUsername" class="text-gray-600">Username:</label>
+              <p id="Username" class="text">{{.Username}}</p>
+              <input type="text" class="editable border border-gray-300 rounded-lg px-3 py-2 mt-2 w-full"
+                id="editableUsername" data-target="Username" name="newUsername" value="{{.Username}}" />
+            </div>
+            <div class="mb-4">
+              <label for="editableEmail" class="text-gray-600">Email:</label>
+              <p id="Email" class="text">{{.Email}}</p>
+              <input type="email" class="editable border border-gray-300 rounded-lg px-3 py-2 mt-2 w-full"
+                id="editableEmail" data-target="Email" name="newEmail" value="{{.Email}}" />
+            </div>
+            <div class="mb-4">
+              <label for="editableAddress" class="text-gray-600">Address:</label>
+              <p id="Address" class="text">{{.Address}}</p>
+              <input type="text" class="editable border border-gray-300 rounded-lg px-3 py-2 mt-2 w-full"
+                id="editableAddress" data-target="Address" name="newAddress" value="{{.Address}}" />
+            </div>
+            <div class="flex-container">
+              <button id="editButton" class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2">Edit</button>
+              <div>
+                <button href="#" id="confirmLink" data-target="Username,Email,Address"
+                  class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 hidden">Confirm</button>
+                <button id="cancelEdit" class="bg-gray-400 hover:bg-gray-500 text-white rounded-lg px-4 py-2 hidden">Cancel</button>
+              </div>
+            </div>
           </div>
-          <div class="mb-4">
-            <label for="editableEmail" class="text-gray-600">Email:</label>
-            <p id="Email" class="text">{{.Email}}</p>
-            <input
-              type="email"
-              class="editable border border-gray-300 rounded-lg px-3 py-2 mt-2 w-full"
-              id="editableEmail"
-              data-target="Email"
-              name="newEmail"
-              value="{{.Email}}"
-            />
-          </div>
-          <div class="mb-4">
-            <label for="editableAddress" class="text-gray-600">Address:</label>
-            <p id="Address" class="text">{{.Address}}</p>
-            <input
-              type="text"
-              class="editable border border-gray-300 rounded-lg px-3 py-2 mt-2 w-full"
-              id="editableAddress"
-              data-target="Address"
-              name="newAddress"
-              value="{{.Address}}"
-            />
-          </div>
-          <div class="flex justify-between">
-            <button
-              id="editButton"
-              class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2"
-            >
-              Edit
-            </button>
-            <button
-              href="#"
-              id="confirmLink"
-              data-target="Username,Email,Address"
-              class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 hidden"
-            >
-              Confirm
-            </button>
-            <button
-              id="cancelEdit"
-              class="bg-gray-400 hover:bg-gray-500 text-white rounded-lg px-4 py-2 hidden"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </form>
-
-      <!-- Change Password Section -->
-      <button
-        id="changePasswordButton"
-        class="mt-6 bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2"
-      >
-        Change Password
-      </button>
-      <div
-        id="changePasswordFields"
-        class="bg-white rounded-lg p-6 shadow-md mt-4 hidden"
-      >
-        <form id="changePasswordForm">
-          <div class="mb-4">
-            <label for="currentPassword" class="text-gray-600"
-              >Current Password:</label
-            >
-            <input
-              type="password"
-              id="currentPassword"
-              name="currentPassword"
-              class="border border-gray-300 rounded-lg px-3 py-2 w-full"
-            />
-          </div>
-          <div class="mb-4">
-            <label for="newPassword" class="text-gray-600">New Password:</label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              class="border border-gray-300 rounded-lg px-3 py-2 w-full"
-            />
-          </div>
-          <button
-            id="confirmChangePassword"
-            class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2"
-          >
-            Confirm
-          </button>
-          <button
-            id="cancelPassword"
-            class="bg-gray-400 hover:bg-gray-500 text-white rounded-lg px-4 py-2 mt-2"
-          >
-            Cancel
-          </button>
         </form>
+    
+        <!-- Change Password Section -->
+        <button id="changePasswordButton"
+          class="mt-6 bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2">Change Password</button>
+        <div id="changePasswordFields" class="bg-white rounded-lg p-6 shadow-md mt-4 hidden">
+          <form id="changePasswordForm">
+            <div class="mb-4">
+              <label for="currentPassword" class="text-gray-600">Current Password:</label>
+              <input type="password" id="currentPassword" name="currentPassword"
+                class="border border-gray-300 rounded-lg px-3 py-2 w-full" />
+            </div>
+            <div class="mb-4">
+              <label for="newPassword" class="text-gray-600">New Password:</label>
+              <input type="password" id="newPassword" name="newPassword"
+                class="border border-gray-300 rounded-lg px-3 py-2 w-full" />
+            </div>
+            <div class="flex-container">
+              <button id="confirmChangePassword"
+                class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2">Confirm</button>
+              <button id="cancelPassword"
+                class="bg-gray-400 hover:bg-gray-500 text-white rounded-lg px-4 py-2 mt-2">Cancel</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+      <footer class="bg-gray-200 text-center py-4 mt-8 footer">
+        <p>&copy; 2023 Litva Kebabs. All rights reserved.</p>
+    </footer>
   </body>
 </html>
